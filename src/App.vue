@@ -19,8 +19,9 @@
 <script>
 import Vue from 'Vue'
 import draggable from 'vuedraggable'
-import navigation from './navigation'
+import navSrc from './navigation'
 import axios from 'axios'
+import localforage from 'localforage'
 const localurl = 'http://localhost:5000'
 export default Vue.extend({
   components: {
@@ -29,15 +30,17 @@ export default Vue.extend({
   data() {
     return {
       description: "Parcel - Vue Project is test",
-      navigation
+      navigation: null
     }
   },
   created () {
+    localforage.getItem('navigation')
+    .then(value => {
+      if (value) this.navigation = value.files
+      else this.navigation = navSrc
+    }).catch(err => { console.log(err) })
   },
   methods: {
-    onError (error) {
-      console.log(error)
-    },
     add() {
       this.navigation.push({ name: "test " + id, id: id++ });
     },
@@ -46,6 +49,10 @@ export default Vue.extend({
         axios.post(localurl + '/navigation/update', this.navigation)
         .then(res => {
           console.log(res)
+          localforage.setItem('navigation', res.data)
+          .then(value => {
+            console.log(value)
+          }).catch(err => { console.log(err) })
         })
       } catch (error) {
         console.log(error)

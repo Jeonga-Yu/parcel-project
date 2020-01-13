@@ -16,11 +16,19 @@ app.post('/navigation/update', (req, res) => {
     const navItem = req.body
     const dir = path.join(__dirname, 'Views')
     
-    for(let i = 0; i<=navItem.length -1 ; i++) {
-      fs.mkdir(path.join(dir, navItem[i].phase), err => { if(err) throw err })
-    }
+    // make directory
+    // for(let i = 0; i<=navItem.length -1 ; i++) {
+    //   console.log(path.join(dir, navItem[i].phase))
+    //   fs.mkdir(path.join(dir, navItem[i].phase), err => { if(err) throw err })
+    // }
+
+    fs.readdir(dir, (err, files) => {
+      if(err) throw err
+      const result = { "files": files}
+      console.log(result)
+      res.status(200).json(result)
+    })
     
-    res.status(200).json('OK')
   } catch (error) {
     console.log(error)
     throw error
