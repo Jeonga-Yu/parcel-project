@@ -1,2 +1,5 @@
 package-lock.json
 /node_modules
+.cache
+/dist
+/src/navigation.js
