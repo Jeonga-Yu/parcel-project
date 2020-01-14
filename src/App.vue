@@ -91,9 +91,8 @@ export default Vue.extend({
         axios.post(localurl + '/navigation/update', arr[0])
         .then(res => {
           localforage.setItem('navigation', res.data)
-          .then(value => {
-            console.log(value)
-          }).catch(err => { console.log(err) })
+          .then(value => { console.log(value) })
+          .catch(err => { console.log(err) })
         })
       } catch (error) {
         console.log(error)
