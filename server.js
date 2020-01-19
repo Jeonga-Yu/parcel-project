@@ -4,14 +4,30 @@ const cors = require('cors')
 const fs = require('fs')
 const path = require('path')
 const _ = require('lodash')
+const dirTree = require('directory-tree')
+const util = require('util');
 
 app.use(cors())
 app.use(express.json())
 
-const navdir = path.join(__dirname, 'Views')
+const nav_path = path.join(__dirname, 'Views')
+// const nav_tree = getDirTree(nav_path).children
 
-app.get('/', (req, res) => {
-  res.send('express test')
+// const tree = dirTree(nav_path)
+
+app.get('/directory', (req, res) => {
+  try {
+    if (module.parent == undefined) {
+        // node dirTree.js ~/foo/bar
+        // const result = util.inspect(getDirTree(nav_path), false, null)
+        writeDirTree(getDirTree(nav_path).children)
+        res.status(200).json(getDirTree(nav_path).children)
+    }
+    
+  } catch (error) {
+    console.log(error)
+    throw error
+  }
 })
 
 app.post('/navigation/update', (req, res) => {
@@ -20,16 +36,17 @@ app.post('/navigation/update', (req, res) => {
     const phase = data.phase
     const group = data.group
 
-    // console.log(group)
+    fs.access(path.join(nav_path, phase), function(error) {
+      if (error) { fs.mkdir(path.join(nav_path, phase), err => { if(err) throw err }); }
+    })
 
     group.forEach(g => {
-      const gpath = path.join(navdir, phase, g.name)
+      const gpath = path.join(nav_path, phase, g.name)
       fs.access(gpath, function(error) {
         if (error) { fs.mkdir(gpath, err => { if(err) throw err }); }
-
       })
       g.elements.forEach(el => {
-        const elpath = path.join(navdir, phase, g.name, el.name)
+        const elpath = path.join(nav_path, phase, g.name, el.name)
         fs.access(elpath, function(error) {
           if (error) {
             // console.log("Directory does not exist.")
@@ -43,32 +60,28 @@ app.post('/navigation/update', (req, res) => {
     })
 
     // read /Views
-    fs.readdir(path.join(navdir, phase), (err, glocal) => {
-      if (err) throw err;
+    // fs.readdir(path.join(nav_path, phase), (err, glocal) => {
+    //   if (err) throw err;
 
-      //req group의 elements는 비어있고 local 폴더 아래폴더는 안비어있을 때 아래폴더들 삭제
-      glocal.forEach(el => {
-        group.forEach(g => {
-          // console.log(g)
-          // console.log(el.elements)
-          if (g.name === el) {
-            // console.log(el)
-            let minidir
+    //   //req group의 elements는 비어있고 local 폴더 아래폴더는 안비어있을 때 아래폴더들 삭제
+    //   glocal.forEach(el => {
+    //     group.forEach(g => {
+    //       // console.log(g)
+    //       // console.log(el.elements)
+    //       if (g.name === el) {
+    //         // console.log(el)
+    //         let minidir
             
-            g.elements.forEach(e => {
-              console.log(e.name)
-              //req dir
-              minidir = path.join(navdir, g.name, e.name)
-              console.log(minidir)
-            })
-          }
-        })
-      })
-      
-
-    })
-
-
+    //         g.elements.forEach(e => {
+    //           console.log(e.name)
+    //           //req dir
+    //           minidir = path.join(nav_path, g.name, e.name)
+    //           console.log(minidir)
+    //         })
+    //       }
+    //     })
+    //   })
+    // })
     res.status(200).send('OK')
 
   } catch (error) {
@@ -79,14 +92,15 @@ app.post('/navigation/update', (req, res) => {
 
 app.post('/delete', function (req, res) {
   try {
-    const dir = req.body.dir
-    console.log(dir)
-    fs.access(dir, function(error) {
+    const path_ = req.body.path
+    fs.access(path_, function(error) {
       if (error) false
-      else fs.rmdir(path.join(navdir, dir), err => { if (err) throw err })
+      else fs.rmdir(path_, err => {
+        if (err) throw err
+        writeDirTree(getDirTree(nav_path).children)
+        res.status(200).json(getDirTree(nav_path).children)
+      })
     })
-    fs.rmdir(path.join(navdir, dir), err => { if (err) throw err })
-    res.status(200).send('Got a DELETE request at /delete'); 
   } catch (error) {
     console.log(error)
     throw error
@@ -95,17 +109,51 @@ app.post('/delete', function (req, res) {
 
 app.post('/create', function (req, res) {
   try {
-    const dir = req.body.dir
-    console.log(dir)
-    fs.access(dir, function(error) {
-      if (error) fs.mkdir(path.join(navdir, dir), err => { if(err) throw err })
+    const type = req.body.type
+    const set = req.body.path || nav_path
+    const text = req.body.text || 'NewFolder'
+    const path_ = path.join(set, text)
+
+    fs.access(path_, function(error) {
+      if (error) fs.mkdir(path.join(path_), err => {
+        if(err) throw err
+        writeDirTree(getDirTree(nav_path).children)
+        res.status(200).json(getDirTree(nav_path).children)
+      })
     })
-    res.status(200).send('Got a CREATE request at /create'); 
+
   } catch (error) {
     console.log(error)
     throw error
   }
 })
+
+
+function getDirTree(filename) {
+  const stats = fs.lstatSync(filename)
+  const info = {
+          path: filename,
+          text: (path.basename(filename)).replace(/(\s*)/g, '')
+      }
+  if (stats.isDirectory()) {
+      info.type = "folder"
+      info.children = fs.readdirSync(filename).map(function(child) {
+          return getDirTree(filename + '/' + child)
+      })
+  } else {
+      // Assuming it's a file. In real life it could be a symlink or
+      // something else!
+      info.type = "file"
+  }
+  return info
+}
+
+function writeDirTree(content) {
+  fs.writeFile(path.join(nav_path, 'navigation.json'), JSON.stringify(content), (err) => {
+    if (err) throw err
+  })
+}
+
 
 app.listen(5000, () => {
   console.log('listen 5000...')

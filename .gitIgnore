@@ -2,4 +2,8 @@ package-lock.json
 /node_modules
 .cache
 /dist
-/src/navigation.js
+
+# components
+components/navigation/.cache
+components/navigation/dist
+components/navigation/node_modules
