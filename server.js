@@ -59,29 +59,6 @@ app.post('/navigation/update', (req, res) => {
 
     })
 
-    // read /Views
-    // fs.readdir(path.join(nav_path, phase), (err, glocal) => {
-    //   if (err) throw err;
-
-    //   //req group의 elements는 비어있고 local 폴더 아래폴더는 안비어있을 때 아래폴더들 삭제
-    //   glocal.forEach(el => {
-    //     group.forEach(g => {
-    //       // console.log(g)
-    //       // console.log(el.elements)
-    //       if (g.name === el) {
-    //         // console.log(el)
-    //         let minidir
-            
-    //         g.elements.forEach(e => {
-    //           console.log(e.name)
-    //           //req dir
-    //           minidir = path.join(nav_path, g.name, e.name)
-    //           console.log(minidir)
-    //         })
-    //       }
-    //     })
-    //   })
-    // })
     res.status(200).send('OK')
 
   } catch (error) {
@@ -133,7 +110,8 @@ function getDirTree(filename) {
   const stats = fs.lstatSync(filename)
   const info = {
           path: filename,
-          text: (path.basename(filename)).replace(/(\s*)/g, '')
+          text: (path.basename(filename)).replace(/(\s*)/g, ''),
+          cdate: new Date()
       }
   if (stats.isDirectory()) {
       info.type = "folder"
